@@ -1,36 +1,48 @@
 #!/usr/bin/bash
-set -e
+set -e 
 
-echo -e Inresar el nombre del archivo sin extensión:
+echo -e Enter the name of the file:
 read file
 
-echo ------------------- ENSAMBLANDO -------------------
-echo Ensamblando Archivo: $file.s - $(date +%H:%M:%S)
+echo --------------- ASSEMBLING ----------------
+echo Assembling file: $file.s - $(date +%H:%M:%S)
 aarch64-linux-gnu-as -o $file.o $file.s
 
 if [ $? -eq 0 ]; then
-    echo Ensamblado Exitoso
+    echo Assembling successful
 else
-    echo Error Fallido
+    echo Assembling failed
     exit 1
 fi
 
-echo ====================================================
+echo ==========================================
 
-echo ------------------- ENLAZADO -------------------
-echo Enlazando Archivo: $file.o - $(date +%H:%M:%S)
+echo ---------------- LINKING -----------------
+echo Linking file: $file.o - $(date +%H:%M:%S)
 aarch64-linux-gnu-ld -o $file $file.o
 
 if [ $? -eq 0 ]; then
-    echo Ejecutable Creado
+    echo Object file created
 else
-    echo Error en el Enlazado
+    echo Object file not created
     exit 1
 fi
 
-echo ====================================================
+echo ==========================================
 
-echo Ensamblado y Enlazado Exitoso: $file -$(date +%H:%M:%S)
-echo Ejecutando el Archivo: $file
-qemu-aarch64 ./$file
-rm $file.o $file
+echo Done compiling and linking file: $file - $(date +%H:%M:%S)
+
+if [ -z "$1" ]; then
+    echo Running the file: $file - $(date +%H:%M:%S)
+    qemu-aarch64 ./$file
+    rm $file.o $file
+
+elif [ "debug" == "$1" ]; then
+    echo Debugging the file: $file - $(date +%H:%M:%S)
+    qemu-aarch64 -g 1234 ./$file &
+    gnome-terminal --window --maximize -- bash -c "gdb-multiarch -q --nh -ex 'set architecture aarch64' -ex 'file $file' -ex 'target remote localhost:1234' -ex 'layout split' -ex 'layout regs'; rm $file.o $file"
+
+else 
+    echo Invalid argument
+    exit 1
+fi
